@@ -1,0 +1,1156 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ankara Olay Haritası</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+        
+        html, body {
+            height: 100%;
+            overflow: hidden;
+        }
+        
+        body {
+            display: flex;
+            height: 100vh;
+            background-color: #f5f5f5;
+        }
+        
+        #sidebar {
+            width: 350px;
+            background: white;
+            border-right: 1px solid #ddd;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            overflow-y: auto;
+        }
+        
+        #map {
+            flex: 1;
+            height: 100vh;
+            position: relative;
+        }
+        
+        .header {
+            padding: 20px;
+            background: #2c3e50;
+            color: white;
+            text-align: center;
+            flex-shrink: 0;
+        }
+        
+        .header h1 {
+            font-size: 1.5rem;
+            margin-bottom: 5px;
+        }
+        
+        .header p {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+        
+        .user-section {
+            padding: 15px;
+            background: #ecf0f1;
+            border-bottom: 1px solid #ddd;
+            flex-shrink: 0;
+        }
+        
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #3498db;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+        }
+        
+        .login-prompt {
+            text-align: center;
+            padding: 10px;
+            background: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 5px;
+            margin-top: 10px;
+            color: #856404;
+        }
+        
+        .category-filters {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+        
+        .category-filters h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+        
+        .category-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .category-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .category-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .category-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+        }
+        
+        .category-icon {
+            width: 30px;
+            text-align: center;
+        }
+        
+        .add-marker-section {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+        }
+        
+        .add-marker-section h3 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #2c3e50;
+            font-size: 14px;
+        }
+        
+        select, input, textarea {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+            background: #fafafa;
+        }
+        
+        select:focus, input:focus, textarea:focus {
+            outline: none;
+            border-color: #3498db;
+            background: white;
+        }
+        
+        .error {
+            border-color: #e74c3c !important;
+        }
+        
+        .error-message {
+            color: #e74c3c;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+        
+        button {
+            width: 100%;
+            padding: 14px;
+            background: #2c3e50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+        
+        button:hover {
+            background: #1a252f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button:disabled {
+            background: #95a5a6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        
+        .primary-btn {
+            background: #3498db;
+        }
+        
+        .primary-btn:hover {
+            background: #2980b9;
+        }
+        
+        .marker-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+        }
+        
+        .marker-list h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .marker-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            transition: background 0.2s;
+        }
+        
+        .marker-item:hover {
+            background: #f8f9fa;
+        }
+        
+        .marker-info {
+            flex: 1;
+        }
+        
+        .marker-title {
+            font-weight: 700;
+            margin-bottom: 8px;
+            color: #2c3e50;
+            font-size: 16px;
+        }
+        
+        .marker-meta {
+            font-size: 0.85rem;
+            color: #7f8c8d;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-bottom: 8px;
+            align-items: center;
+        }
+        
+        .marker-meta span {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .marker-desc {
+            font-size: 0.9rem;
+            color: #555;
+            line-height: 1.5;
+        }
+        
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 0.8rem;
+            transition: background 0.2s;
+            flex-shrink: 0;
+        }
+        
+        .delete-btn:hover {
+            background: #c0392b;
+        }
+        
+        .delete-btn:disabled {
+            background: #e0a7a1;
+            cursor: not-allowed;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 400px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .modal h2 {
+            margin-bottom: 20px;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .close-modal {
+            float: right;
+            background: none;
+            border: none;
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #7f8c8d;
+            width: auto;
+            padding: 0;
+            transition: color 0.2s;
+        }
+        
+        .close-modal:hover {
+            color: #e74c3c;
+        }
+        
+        .login-btn {
+            background: #3498db;
+            margin-top: 15px;
+        }
+        
+        .logout-btn {
+            background: #e74c3c;
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 0.9rem;
+        }
+        
+        .leaflet-popup-content h3 {
+            margin-top: 0;
+            color: #2c3e50;
+            font-size: 18px;
+        }
+        
+        .leaflet-popup-content p {
+            margin: 8px 0;
+            color: #555;
+        }
+        
+        .leaflet-popup-content button {
+            margin-top: 10px;
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+        
+        #noMarkersText {
+            text-align: center;
+            padding: 40px 20px;
+            color: #7f8c8d;
+            font-style: italic;
+        }
+        
+        .weather-info {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-shrink: 0;
+        }
+        
+        .weather-temp {
+            font-size: 2rem;
+            font-weight: bold;
+        }
+        
+        .weather-desc {
+            font-size: 1rem;
+            opacity: 0.9;
+        }
+        
+        .weather-icon {
+            font-size: 2.5rem;
+        }
+        
+        .toast {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #2c3e50;
+            color: white;
+            padding: 15px 25px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            z-index: 1001;
+            transform: translateX(150%);
+            transition: transform 0.3s ease;
+        }
+        
+        .toast.show {
+            transform: translateX(0);
+        }
+        
+        .toast.error {
+            background: #e74c3c;
+        }
+        
+        .toast.success {
+            background: #2ecc71;
+        }
+        
+        .toast.info {
+            background: #3498db;
+        }
+        
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            
+            #sidebar {
+                width: 100%;
+                height: 50vh;
+            }
+            
+            #map {
+                height: 50vh;
+            }
+            
+            .weather-info {
+                margin: 10px;
+                padding: 12px;
+            }
+            
+            .weather-temp {
+                font-size: 1.5rem;
+            }
+            
+            .weather-icon {
+                font-size: 2rem;
+            }
+            
+            .toast {
+                top: 10px;
+                right: 10px;
+                left: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <div id="sidebar">
+        <div class="header">
+            <h1><i class="fas fa-map-marked-alt"></i> Ankara Olay Haritası</h1>
+            <p>Trafik, kaza ve yol olaylarını takip edin</p>
+        </div>
+        
+        <!-- Hava Durumu -->
+        <div class="weather-info">
+            <div>
+                <div class="weather-temp" id="weatherTemp">1°C</div>
+                <div class="weather-desc" id="weatherDesc">Bulutlu</div>
+            </div>
+            <div class="weather-icon">
+                <i class="fas fa-cloud"></i>
+            </div>
+        </div>
+        
+        <div class="user-section">
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">?</div>
+                <div>
+                    <div id="userName">Misafir Kullanıcı</div>
+                    <div id="userStatus" style="font-size: 0.8rem; color: #7f8c8d;">Giriş yapılmadı</div>
+                </div>
+            </div>
+            <div id="loginPrompt" class="login-prompt">
+                <i class="fas fa-info-circle"></i> Marker eklemek için giriş yapmalısınız
+            </div>
+            <button id="loginBtn" class="login-btn">
+                <i class="fas fa-sign-in-alt"></i> Giriş Yap / Üye Ol
+            </button>
+            <button id="logoutBtn" class="logout-btn" style="display: none;">
+                <i class="fas fa-sign-out-alt"></i> Çıkış Yap
+            </button>
+        </div>
+        
+        <div class="category-filters">
+            <h3><i class="fas fa-filter"></i> Olay Kategorileri</h3>
+            <div class="category-list" id="categoryList">
+                <!-- Kategoriler buraya eklenecek -->
+            </div>
+        </div>
+        
+        <div class="add-marker-section">
+            <h3><i class="fas fa-map-marker-alt"></i> Yeni Olay Ekle</h3>
+            <div class="form-group">
+                <label for="markerType"><i class="fas fa-tag"></i> Olay Tipi</label>
+                <select id="markerType">
+                    <option value="kaza">Trafik Kazası</option>
+                    <option value="araba">Araç Yoğunluğu</option>
+                    <option value="trafik">Trafik Sıkışıklığı</option>
+                    <option value="yol">Yol Çalışması</option>
+                    <option value="acil">Acil Durum</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="markerTitle"><i class="fas fa-heading"></i> Başlık</label>
+                <input type="text" id="markerTitle" placeholder="Örn: Kızılay'da trafik kazası">
+                <div class="error-message" id="titleError">Lütfen bir başlık girin!</div>
+                <small style="color: #7f8c8d; font-size: 12px; margin-top: 5px; display: block;">İstediğiniz başlığı yazabilirsiniz</small>
+            </div>
+            <div class="form-group">
+                <label for="markerDesc"><i class="fas fa-align-left"></i> Açıklama</label>
+                <textarea id="markerDesc" rows="3" placeholder="Olay hakkında detaylı bilgi (isteğe bağlı)"></textarea>
+            </div>
+            <button id="addMarkerBtn" class="primary-btn" disabled>
+                <i class="fas fa-plus-circle"></i> Haritaya Olay Ekle
+            </button>
+            <div style="margin-top: 10px; text-align: center;">
+                <small style="color: #7f8c8d; font-size: 12px;">veya haritaya tıklayarak ekleyebilirsiniz</small>
+            </div>
+        </div>
+        
+        <div class="marker-list">
+            <h3><i class="fas fa-list"></i> Eklenen Olaylar</h3>
+            <div id="markersContainer">
+                <p id="noMarkersText">Henüz olay eklenmedi</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Harita -->
+    <div id="map"></div>
+    
+    <!-- Giriş Modalı -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <button class="close-modal" id="closeModal">&times;</button>
+            <h2><i class="fas fa-user-circle"></i> Giriş Yap / Üye Ol</h2>
+            <div class="form-group">
+                <label for="username">Kullanıcı Adı</label>
+                <input type="text" id="username" placeholder="Kullanıcı adınızı girin">
+            </div>
+            <div class="form-group">
+                <label for="password">Şifre</label>
+                <input type="password" id="password" placeholder="Şifrenizi girin">
+            </div>
+            <div class="form-group">
+                <label for="email">E-posta (üye olmak için)</label>
+                <input type="email" id="email" placeholder="E-posta adresiniz">
+            </div>
+            <div style="display: flex; gap: 10px; margin-top: 20px;">
+                <button id="doLoginBtn" style="flex: 1;">
+                    <i class="fas fa-sign-in-alt"></i> Giriş Yap
+                </button>
+                <button id="doRegisterBtn" style="flex: 1; background: #2ecc71;">
+                    <i class="fas fa-user-plus"></i> Üye Ol
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Toast Mesaj -->
+    <div id="toast" class="toast">
+        <i class="fas fa-info-circle"></i>
+        <span id="toastMessage">Mesaj</span>
+    </div>
+    
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script>
+        // Harita ve veri yapıları
+        let map;
+        let markers = [];
+        let currentUser = null;
+        let selectedCategory = 'all';
+        
+        // Kategori tanımları
+        const categories = {
+            'kaza': { color: '#e74c3c', icon: 'car-burst', label: 'Trafik Kazası' },
+            'araba': { color: '#3498db', icon: 'car', label: 'Araç Yoğunluğu' },
+            'trafik': { color: '#f39c12', icon: 'traffic-light', label: 'Trafik Sıkışıklığı' },
+            'yol': { color: '#2ecc71', icon: 'road', label: 'Yol Çalışması' },
+            'acil': { color: '#9b59b6', icon: 'triangle-exclamation', label: 'Acil Durum' }
+        };
+        
+        // Ankara'da bazı örnek konumlar (dosyadan alınanlar)
+        const ankaraLocations = {
+            'Kızılay': { lat: 39.9208, lng: 32.8541 },
+            'Yenimahalle': { lat: 39.9667, lng: 32.8000 },
+            'Altındağ': { lat: 39.9500, lng: 32.8667 },
+            'Mamak': { lat: 39.9500, lng: 32.9167 },
+            'Çankaya': { lat: 39.8876, lng: 32.8627 },
+            'D200': { lat: 39.8800, lng: 32.7800 },
+            'Ankara': { lat: 39.9334, lng: 32.8597 },
+            'İstanbul Yüksek Hızlı Demiryolu': { lat: 39.9500, lng: 32.7500 },
+            'K16': { lat: 39.9100, lng: 32.8400 },
+            'K15': { lat: 39.9150, lng: 32.8450 },
+            'K14': { lat: 39.9200, lng: 32.8500 },
+            'K13-11': { lat: 39.9250, lng: 32.8550 },
+            'K12': { lat: 39.9300, lng: 32.8600 },
+            'K10': { lat: 39.9350, lng: 32.8650 }
+        };
+        
+        // DOM elementleri
+        const loginBtn = document.getElementById('loginBtn');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const addMarkerBtn = document.getElementById('addMarkerBtn');
+        const loginModal = document.getElementById('loginModal');
+        const closeModal = document.getElementById('closeModal');
+        const doLoginBtn = document.getElementById('doLoginBtn');
+        const doRegisterBtn = document.getElementById('doRegisterBtn');
+        const categoryList = document.getElementById('categoryList');
+        const markersContainer = document.getElementById('markersContainer');
+        const noMarkersText = document.getElementById('noMarkersText');
+        const userName = document.getElementById('userName');
+        const userAvatar = document.getElementById('userAvatar');
+        const userStatus = document.getElementById('userStatus');
+        const loginPrompt = document.getElementById('loginPrompt');
+        const weatherTemp = document.getElementById('weatherTemp');
+        const weatherDesc = document.getElementById('weatherDesc');
+        const titleError = document.getElementById('titleError');
+        const toast = document.getElementById('toast');
+        const toastMessage = document.getElementById('toastMessage');
+        
+        // Toast mesaj göster
+        function showToast(message, type = 'info') {
+            toastMessage.textContent = message;
+            toast.className = `toast ${type}`;
+            toast.classList.add('show');
+            
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+        
+        // Haritayı başlat
+        function initMap() {
+            // Ankara merkezli harita
+            map = L.map('map').setView([39.9334, 32.8597], 12);
+            
+            // OpenStreetMap tile layer
+            L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+                maxZoom: 19
+            }).addTo(map);
+            
+            // Harita boyutunu ayarla ve yeniden boyutlandırmayı dinle
+            updateMapSize();
+            window.addEventListener('resize', updateMapSize);
+            
+            // Örnek marker'lar ekle (dosyadan gelen lokasyonlara göre)
+            addSampleMarkers();
+            
+            // Kategori filtrelerini oluştur
+            renderCategoryFilters();
+            
+            // Tıklama ile marker ekleme
+            map.on('click', function(e) {
+                if (currentUser) {
+                    showAddMarkerDialog(e.latlng);
+                } else {
+                    showToast('Marker eklemek için giriş yapmalısınız!', 'info');
+                    loginModal.style.display = 'flex';
+                }
+            });
+            
+            // Rastgele hava durumu güncelle
+            updateRandomWeather();
+        }
+        
+        // Harita boyutunu güncelle
+        function updateMapSize() {
+            const mapElement = document.getElementById('map');
+            if (map) {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
+            }
+        }
+        
+        // Rastgele hava durumu güncelle
+        function updateRandomWeather() {
+            const temperatures = [-2, 0, 1, 2, 3, 4, 5];
+            const conditions = [
+                { desc: 'Güneşli', icon: 'sun' },
+                { desc: 'Parçalı Bulutlu', icon: 'cloud-sun' },
+                { desc: 'Bulutlu', icon: 'cloud' },
+                { desc: 'Hafif Kar Yağışlı', icon: 'snowflake' },
+                { desc: 'Sisli', icon: 'smog' }
+            ];
+            
+            const randomTemp = temperatures[Math.floor(Math.random() * temperatures.length)];
+            const randomCondition = conditions[Math.floor(Math.random() * conditions.length)];
+            
+            weatherTemp.textContent = `${randomTemp}°C`;
+            weatherDesc.textContent = randomCondition.desc;
+            
+            const weatherIcon = document.querySelector('.weather-icon i');
+            weatherIcon.className = `fas fa-${randomCondition.icon}`;
+        }
+        
+        // Örnek marker'lar ekle
+        function addSampleMarkers() {
+            // Dosyadan gelen lokasyonlara örnek marker'lar
+            const sampleMarkers = [
+                { location: 'Kızılay', type: 'trafik', title: 'Yoğun Trafik', description: 'Kızılay meydanında yoğun trafik var.' },
+                { location: 'D200', type: 'yol', title: 'Yol Çalışması', description: 'D200 karayolunda bakım çalışması.' },
+                { location: 'K10', type: 'kaza', title: 'Trafik Kazası', description: 'Kavşakta iki araç çarpıştı.' },
+                { location: 'Yenimahalle', type: 'araba', title: 'Araç Yoğunluğu', description: 'Pazar girişinde araç yoğunluğu.' },
+                { location: 'İstanbul Yüksek Hızlı Demiryolu', type: 'acil', title: 'Acil Durum', description: 'Tren hattında teknik arıza.' }
+            ];
+            
+            sampleMarkers.forEach(markerData => {
+                const location = ankaraLocations[markerData.location];
+                if (location) {
+                    addMarkerToMap(location.lat, location.lng, markerData.type, markerData.title, markerData.description, 'Sistem');
+                }
+            });
+        }
+        
+        // Marker'ı haritaya ekle
+        function addMarkerToMap(lat, lng, type, title, description, addedBy = null) {
+            const category = categories[type];
+            const userId = currentUser ? currentUser.id : 'guest';
+            
+            // Başlık kontrolü - boş olamaz ama her şey olabilir
+            if (!title || title.trim() === '') {
+                document.getElementById('markerTitle').classList.add('error');
+                titleError.style.display = 'block';
+                document.getElementById('markerTitle').focus();
+                showToast('Lütfen bir başlık girin!', 'error');
+                return null;
+            }
+            
+            // Hata durumlarını temizle
+            document.getElementById('markerTitle').classList.remove('error');
+            titleError.style.display = 'none';
+            
+            // Özel ikon oluştur
+            const markerIcon = L.divIcon({
+                className: 'custom-marker',
+                html: `<div style="background-color: ${category.color}; width: 35px; height: 35px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; border: 3px solid white; box-shadow: 0 3px 6px rgba(0,0,0,0.3);">
+                          <i class="fas fa-${category.icon}" style="font-size: 16px;"></i>
+                       </div>`,
+                iconSize: [35, 35],
+                iconAnchor: [17.5, 17.5]
+            });
+            
+            // Marker oluştur
+            const marker = L.marker([lat, lng], { icon: markerIcon })
+                .addTo(map)
+                .bindPopup(`
+                    <div style="min-width: 200px;">
+                        <h3 style="margin-top: 0; color: #2c3e50;">${title}</h3>
+                        <p><strong><i class="fas fa-tag" style="color: ${category.color};"></i> Tür:</strong> ${category.label}</p>
+                        <p>${description || 'Açıklama yok'}</p>
+                        <p><strong><i class="fas fa-user"></i> Ekleyen:</strong> ${addedBy || (currentUser ? currentUser.name : 'Misafir')}</p>
+                        <p><strong><i class="fas fa-calendar"></i> Tarih:</strong> ${new Date().toLocaleDateString('tr-TR')}</p>
+                        ${currentUser && (currentUser.admin || addedBy === currentUser.name) ? 
+                          `<button onclick="deleteMarker(${markers.length})" style="background: #e74c3c; color: white; border: none; padding: 8px 12px; border-radius: 5px; cursor: pointer; width: 100%; margin-top: 10px;">
+                            <i class="fas fa-trash"></i> Olayı Sil
+                           </button>` : ''}
+                    </div>
+                `);
+            
+            // Marker bilgilerini sakla
+            const markerData = {
+                id: markers.length,
+                lat, lng, type, title, description, addedBy,
+                userId: userId,
+                date: new Date().toISOString(),
+                marker: marker
+            };
+            
+            markers.push(markerData);
+            
+            // Marker listesini güncelle
+            renderMarkerList();
+            
+            // Başarı mesajı göster
+            showToast(`"${title}" başlıklı olay eklendi!`, 'success');
+            
+            return markerData;
+        }
+        
+        // Marker sil
+        function deleteMarker(markerId) {
+            if (!currentUser) {
+                showToast('Olay silmek için giriş yapmalısınız!', 'info');
+                loginModal.style.display = 'flex';
+                return;
+            }
+            
+            const marker = markers[markerId];
+            
+            // Yetki kontrolü: sadece admin veya marker'ı ekleyen kişi silebilir
+            if (currentUser.admin || marker.addedBy === currentUser.name) {
+                if (confirm(`"${marker.title}" başlıklı olayı silmek istediğinize emin misiniz?`)) {
+                    // Haritadan kaldır
+                    map.removeLayer(marker.marker);
+                    
+                    // Diziden kaldır
+                    markers.splice(markerId, 1);
+                    
+                    // ID'leri güncelle
+                    markers.forEach((m, index) => {
+                        m.id = index;
+                    });
+                    
+                    // Marker listesini güncelle
+                    renderMarkerList();
+                    
+                    showToast('Olay başarıyla silindi!', 'success');
+                }
+            } else {
+                showToast('Bu olayı silme yetkiniz yok!', 'error');
+            }
+        }
+        
+        // Kategori filtrelerini oluştur
+        function renderCategoryFilters() {
+            categoryList.innerHTML = '';
+            
+            // Tümü seçeneği
+            const allItem = document.createElement('div');
+            allItem.className = 'category-item';
+            allItem.style.background = selectedCategory === 'all' ? '#ecf0f1' : '';
+            allItem.innerHTML = `
+                <div class="category-color" style="background-color: #7f8c8d;"></div>
+                <div class="category-icon"><i class="fas fa-layer-group"></i></div>
+                <div>Tüm Kategoriler</div>
+            `;
+            allItem.onclick = () => filterMarkersByCategory('all');
+            categoryList.appendChild(allItem);
+            
+            // Her kategori için filtre
+            Object.keys(categories).forEach(key => {
+                const category = categories[key];
+                const item = document.createElement('div');
+                item.className = 'category-item';
+                item.style.background = selectedCategory === key ? '#ecf0f1' : '';
+                item.innerHTML = `
+                    <div class="category-color" style="background-color: ${category.color};"></div>
+                    <div class="category-icon"><i class="fas fa-${category.icon}"></i></div>
+                    <div>${category.label}</div>
+                `;
+                item.onclick = () => filterMarkersByCategory(key);
+                categoryList.appendChild(item);
+            });
+        }
+        
+        // Kategoriye göre marker'ları filtrele
+        function filterMarkersByCategory(category) {
+            selectedCategory = category;
+            
+            // Tüm marker'ları gizle
+            markers.forEach(marker => {
+                map.removeLayer(marker.marker);
+            });
+            
+            // Filtrelenmiş marker'ları göster
+            markers.forEach(marker => {
+                if (category === 'all' || marker.type === category) {
+                    marker.marker.addTo(map);
+                }
+            });
+            
+            // Kategori filtrelerini yeniden render et
+            renderCategoryFilters();
+            
+            // Marker listesini güncelle
+            renderMarkerList();
+        }
+        
+        // Marker listesini render et
+        function renderMarkerList() {
+            markersContainer.innerHTML = '';
+            
+            // Filtrelenmiş marker'lar
+            const filteredMarkers = selectedCategory === 'all' 
+                ? markers 
+                : markers.filter(m => m.type === selectedCategory);
+            
+            if (filteredMarkers.length === 0) {
+                noMarkersText.style.display = 'block';
+                noMarkersText.textContent = selectedCategory === 'all' 
+                    ? 'Henüz olay eklenmedi' 
+                    : `Bu kategoride olay bulunmuyor`;
+                return;
+            }
+            
+            noMarkersText.style.display = 'none';
+            
+            filteredMarkers.forEach(marker => {
+                const category = categories[marker.type];
+                
+                const markerItem = document.createElement('div');
+                markerItem.className = 'marker-item';
+                markerItem.innerHTML = `
+                    <div class="marker-info">
+                        <div class="marker-title">${marker.title}</div>
+                        <div class="marker-meta">
+                            <span><i class="fas fa-${category.icon}" style="color: ${category.color};"></i> ${category.label}</span>
+                            <span><i class="fas fa-user"></i> ${marker.addedBy}</span>
+                            <span><i class="fas fa-calendar"></i> ${new Date(marker.date).toLocaleDateString('tr-TR')}</span>
+                        </div>
+                        <div class="marker-desc">${marker.description || 'Açıklama yok'}</div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteMarker(${marker.id})" ${!currentUser || (!currentUser.admin && marker.addedBy !== currentUser.name) ? 'disabled' : ''}>
+                        <i class="fas fa-trash"></i>
+                    </button>
+                `;
+                
+                markersContainer.appendChild(markerItem);
+            });
+        }
+        
+        // Tıklama ile marker ekleme dialog'u göster
+        function showAddMarkerDialog(latlng) {
+            const type = document.getElementById('markerType').value;
+            const title = document.getElementById('markerTitle').value;
+            const description = document.getElementById('markerDesc').value;
+            
+            const markerData = addMarkerToMap(latlng.lat, latlng.lng, type, title, description, currentUser.name);
+            
+            if (markerData) {
+                // Formu temizle
+                document.getElementById('markerTitle').value = '';
+                document.getElementById('markerDesc').value = '';
+                
+                // Marker'a zoom yap
+                map.setView(latlng, 15);
+            }
+        }
+        
+        // Kullanıcı giriş yap
+        function loginUser(username, password) {
+            // Basit simülasyon - gerçek uygulamada sunucuya istek atılmalı
+            if (username && password) {
+                currentUser = {
+                    id: Date.now().toString(),
+                    name: username,
+                    admin: username === 'admin' // admin kullanıcıya özel yetki
+                };
+                
+                updateUIForUser();
+                closeLoginModal();
+                showToast(`Hoş geldiniz, ${username}!`, 'success');
+                
+                return true;
+            }
+            return false;
+        }
+        
+        // Kullanıcı kayıt ol
+        function registerUser(username, password, email) {
+            // Basit simülasyon - gerçek uygulamada sunucuya istek atılmalı
+            if (username && password) {
+                currentUser = {
+                    id: Date.now().toString(),
+                    name: username,
+                    email: email,
+                    admin: false
+                };
+                
+                updateUIForUser();
+                closeLoginModal();
+                
+                showToast(`Kayıt başarılı! Hoş geldiniz, ${username}!`, 'success');
+                return true;
+            }
+            return false;
+        }
+        
+        // Kullanıcı çıkış yap
+        function logoutUser() {
+            const oldUsername = currentUser ? currentUser.name : '';
+            currentUser = null;
+            updateUIForUser();
+            showToast(`Güle güle, ${oldUsername}!`, 'info');
+        }
+        
+        // Kullanıcı durumuna göre UI güncelle
+        function updateUIForUser() {
+            if (currentUser) {
+                userName.textContent = currentUser.name;
+                userAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+                userAvatar.style.backgroundColor = currentUser.admin ? '#e74c3c' : '#3498db';
+                userStatus.textContent = currentUser.admin ? 'Yönetici' : 'Kullanıcı';
+                loginPrompt.style.display = 'none';
+                loginBtn.style.display = 'none';
+                logoutBtn.style.display = 'block';
+                addMarkerBtn.disabled = false;
+                addMarkerBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Haritaya Olay Ekle';
+            } else {
+                userName.textContent = 'Misafir Kullanıcı';
+                userAvatar.textContent = '?';
+                userAvatar.style.backgroundColor = '#7f8c8d';
+                userStatus.textContent = 'Giriş yapılmadı';
+                loginPrompt.style.display = 'block';
+                loginBtn.style.display = 'block';
+                logoutBtn.style.display = 'none';
+                addMarkerBtn.disabled = true;
+                addMarkerBtn.innerHTML = '<i class="fas fa-plus-circle"></i> Haritaya Olay Ekle (Giriş Yapın)';
+            }
+            
+            // Marker listesini güncelle (silme butonları için)
+            renderMarkerList();
+        }
+        
+        // Giriş modal'ını kapat
+        function closeLoginModal() {
+            loginModal.style.display = 'none';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+            document.getElementById('email').value = '';
+        }
+        
+        // Olay dinleyicileri
+        loginBtn.addEventListener('click', () => {
+            loginModal.style.display = 'flex';
+        });
+        
+        closeModal.addEventListener('click', closeLoginModal);
+        
+        doLoginBtn.addEventListener('click', () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            
+            if (!username || !password) {
+                showToast('Lütfen kullanıcı adı ve şifre girin!', 'error');
+                return;
+            }
+            
+            loginUser(username, password);
+        });
+        
+        doRegisterBtn.addEventListener('click', () => {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const email = document.getElementById('email').value;
+            
+            if (!username || !password) {
+                showToast('Lütfen kullanıcı adı ve şifre girin!', 'error');
+                return;
+            }
+            
+            registerUser(username, password, email);
+        });
+        
+        logoutBtn.addEventListener('click', logoutUser);
+        
+        addMarkerBtn.addEventListener('click', () => {
+            if (!currentUser) {
+                showToast('Olay eklemek için giriş yapmalısınız!', 'info');
+                loginModal.style.display = 'flex';
+                return;
+            }
+            
+            // Formdaki verilerle marker ekle
+            const type = document.getElementById('markerType').value;
+            const title = document.getElementById('markerTitle').value;
+            const description = document.getElementById('markerDesc').value;
+            
+            // Rastgele bir Ankara lokasyonu seç
+            const locationKeys = Object.keys(ankaraLocations);
+            const randomLocationKey = locationKeys[Math.floor(Math.random() * locationKeys.length)];
+            const location = ankaraLocations[randomLocationKey];
+            
+            const markerData = addMarkerToMap(location.lat, location.lng, type, title, description, currentUser.name);
+            
+            if (markerData) {
+                // Formu temizle
+                document.getElementById('markerTitle').value = '';
+                document.getElementById('markerDesc').value = '';
+                
+                // Marker'a zoom yap
+                map.setView([location.lat, location.lng], 15);
+            }
+        });
+        
+        // Başlık input'una Enter tuşu ile marker ekleme
+        document.getElementById('markerTitle').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && currentUser) {
+                document.getElementById('addMarkerBtn').click();
+            }
+        });
+        
+        // Input'tan focus çıkınca hata mesajını temizle
+        document.getElementById('markerTitle').addEventListener('blur', function() {
+            if (this.value.trim() !== '') {
+                this.classList.remove('error');
+                titleError.style.display = 'none';
+            }
+        });
+        
+        // Modal dışına tıklayınca kapat
+        window.addEventListener('click', (e) => {
+            if (e.target === loginModal) {
+                closeLoginModal();
+            }
+        });
+        
+        // Uygulamayı başlat
+        initMap();
+        updateUIForUser();
+        
+        // Global fonksiyonlar
+        window.deleteMarker = deleteMarker;
+        window.showToast = showToast;
+    </script>
+</body>
+</html>

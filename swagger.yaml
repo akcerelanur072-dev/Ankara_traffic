@@ -1,0 +1,118 @@
+openapi: 3.0.3
+info:
+  title: GMT458 Web GIS API
+  version: 1.0.0
+servers:
+  - url: /api
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+security:
+  - bearerAuth: []
+paths:
+  /health:
+    get:
+      summary: Health check
+      responses:
+        "200":
+          description: OK
+  /auth/signup:
+    post:
+      security: []
+      summary: Sign up
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [username, email, password]
+              properties:
+                username: { type: string }
+                email: { type: string }
+                password: { type: string }
+                role: { type: string, enum: [admin, user, viewer] }
+      responses:
+        "201": { description: Created }
+  /auth/login:
+    post:
+      security: []
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [emailOrUsername, password]
+              properties:
+                emailOrUsername: { type: string }
+                password: { type: string }
+      responses:
+        "200": { description: OK }
+  /incidents:
+    get:
+      summary: List incidents (spatial resource)
+      parameters:
+        - in: query
+          name: category
+          schema: { type: string }
+        - in: query
+          name: createdBy
+          schema: { type: string, description: "me or userId (admin only)" }
+        - in: query
+          name: bbox
+          schema: { type: string, description: "minLng,minLat,maxLng,maxLat" }
+      responses:
+        "200": { description: OK }
+    post:
+      summary: Create incident (spatial feature)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [title, lng, lat]
+              properties:
+                title: { type: string }
+                description: { type: string }
+                category: { type: string }
+                lng: { type: number }
+                lat: { type: number }
+      responses:
+        "201": { description: Created }
+  /incidents/{id}:
+    put:
+      summary: Update incident (geometry or attributes)
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                title: { type: string }
+                description: { type: string }
+                category: { type: string }
+                lng: { type: number }
+                lat: { type: number }
+      responses:
+        "200": { description: OK }
+    delete:
+      summary: Delete incident
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string }
+      responses:
+        "200": { description: OK }
